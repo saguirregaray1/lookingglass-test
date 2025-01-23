@@ -1,0 +1,71 @@
+services:
+  frr1:
+    image: frrouting/frr:latest
+    container_name: frr1
+    privileged: true
+    networks:
+      frr-net:
+        ipv4_address: 192.168.100.2
+    volumes:
+      - ./frr1/frr.conf:/etc/frr/frr.conf:ro
+      - ./frr1/daemons:/etc/frr/daemons:ro
+    command: /bin/bash -c "/usr/lib/frr/frrinit.sh start; tail -f /dev/null"
+    tty: true
+    stdin_open: true
+
+  frr2:
+    image: frrouting/frr:latest
+    container_name: frr2
+    privileged: true
+    networks:
+      frr-net:
+        ipv4_address: 192.168.100.3
+    volumes:
+      - ./frr2/frr.conf:/etc/frr/frr.conf:ro
+      - ./frr2/daemons:/etc/frr/daemons:ro    # <--- add this
+    command: /bin/bash -c "/usr/lib/frr/frrinit.sh start; tail -f /dev/null"
+    tty: true
+    stdin_open: true
+
+  redis:
+    image: "redis:alpine"
+    container_name: redis
+    networks:
+      - frr-net
+
+  hyperglass:
+    image: hyperglass:latest
+    container_name: hyperglass
+    ports:
+      - "8001:8001"
+    volumes:
+      - /etc/hyperglass:/etc/hyperglass
+      - ./hyperglass/config.yaml:/etc/hyperglass/config.yaml
+      - ./hyperglass/devices.yaml:/etc/hyperglass/devices.yaml
+      - ./hyperglass/directives.yaml:/etc/hyperglass/directives.yaml
+    environment:
+      - HYPERGLASS_APP_PATH=/etc/hyperglass
+      - HYPERGLASS_HOST=${HYPERGLASS_HOST-0.0.0.0}
+      - HYPERGLASS_PORT=${HYPERGLASS_PORT-8001}
+      - HYPERGLASS_DEBUG=${HYPERGLASS_DEBUG-false}
+      - HYPERGLASS_DEV_MODE=${HYPERGLASS_DEV_MODE-false}
+      - HYPERGLASS_REDIS_HOST=${HYPERGLASS_REDIS_HOST-redis}
+      - HYPEGLASS_DISABLE_UI=${HYPEGLASS_DISABLE_UI-false}
+      - HYPERGLASS_CONTAINER=${HYPERGLASS_CONTAINER-true}
+      - HYPERGLASS_ORIGINAL_APP_PATH=${HYPERGLASS_APP_PATH}
+    depends_on:
+      - redis
+      - frr1
+      - frr2
+    networks:
+      - frr-net
+
+networks:
+  frr-net:
+    driver: bridge
+    enable_ipv6: true
+    ipam:
+      driver: default
+      config:
+        - subnet: "192.168.100.0/24"
+        - subnet: "2001:db8::/64"  # IPv6 subnet

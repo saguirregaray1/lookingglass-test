@@ -1,0 +1,16 @@
+zebra=yes
+bgpd=yes
+staticd=yes
+
+# The following line allows vtysh usage; recommended
+vtysh_enable=yes
+
+# The default for bgpd might look like this:
+# bgpd_options="-A 127.0.0.1 -u frr -g frr"
+#
+# We need to make sure it binds on 0.0.0.0 and also listens on the Telnet port 2605.
+# The '-t' parameter is the Telnet port for bgpd (though it might be the default).
+bgpd_options="-A 0.0.0.0 -u frr -g frr -t 2605"
+
+# Similarly for zebra if you want direct Telnet to zebra:
+zebra_options="-A 0.0.0.0 -u frr -g frr -t 2601"
